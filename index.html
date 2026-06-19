@@ -1,65 +1,1115 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>House of Horror | Can you escape ?</title>
-    <link rel = "stylesheet" href = "style.css">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Blackwood Manor | Escape the Horror</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Creepster&family=Special+Elite&display=swap" rel="stylesheet">
+<style>
+
+/* ══════════════════════════════════════════
+   RESET & BASE
+══════════════════════════════════════════ */
+*, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
+
+:root {
+  --gold:   #c9a84c;
+  --blood:  #8b1a1a;
+  --fog:    rgba(15,10,25,0.92);
+  --panel:  rgba(8,6,14,0.95);
+  --border: rgba(201,168,76,0.35);
+  --text:   #d4c4a0;
+  --dim:    #6b5c3e;
+}
+
+body {
+  background: #000;
+  color: var(--text);
+  font-family: 'Special Elite', serif;
+  height: 100vh;
+  overflow: hidden;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+/* ══════════════════════════════════════════
+   PLAY GATE
+══════════════════════════════════════════ */
+#play-gate {
+  position: fixed; inset: 0;
+  background: radial-gradient(ellipse at 50% 60%, #0d0812 0%, #000 70%);
+  z-index: 9999;
+  display: flex; flex-direction: column;
+  justify-content: center; align-items: center;
+  transition: opacity 1.8s ease, visibility 1.8s ease;
+}
+#play-gate.hidden { opacity:0; visibility:hidden; pointer-events:none; }
+
+.gate-manor {
+  font-family: 'Creepster', cursive;
+  font-size: clamp(12px,1.5vw,18px);
+  letter-spacing: 10px;
+  color: var(--dim);
+  text-transform: uppercase;
+  margin-bottom: 12px;
+  animation: flicker 4s ease-in-out infinite;
+}
+.gate-title {
+  font-family: 'Creepster', cursive;
+  font-size: clamp(42px, 7vw, 88px);
+  color: var(--blood);
+  text-shadow: 0 0 30px #8b1a1a, 0 0 80px #5a0f0f;
+  letter-spacing: 6px;
+  line-height: 1;
+  animation: pulsate 3s ease-in-out infinite;
+}
+.gate-sub {
+  font-size: clamp(13px,1.4vw,17px);
+  color: var(--dim);
+  letter-spacing: 5px;
+  margin: 18px 0 55px;
+}
+#btn-play {
+  padding: 16px 64px;
+  border: 2px solid var(--gold);
+  background: transparent;
+  color: var(--gold);
+  font-family: 'Creepster', cursive;
+  font-size: clamp(22px,2.5vw,30px);
+  letter-spacing: 8px;
+  cursor: pointer;
+  border-radius: 3px;
+  transition: all .3s;
+  text-shadow: 0 0 10px var(--gold);
+  box-shadow: 0 0 20px rgba(201,168,76,.15);
+}
+#btn-play:hover {
+  background: var(--gold);
+  color: #0d0812;
+  box-shadow: 0 0 50px rgba(201,168,76,.45);
+  text-shadow: none;
+}
+.gate-deco {
+  position:absolute; bottom:60px;
+  font-size: 12px; letter-spacing: 4px;
+  color: rgba(107,92,62,.4);
+  animation: flicker 6s ease-in-out infinite 1s;
+}
+
+/* ══════════════════════════════════════════
+   GAME SHELL
+══════════════════════════════════════════ */
+#game-shell {
+  display: flex;
+  gap: 0;
+  width: min(1200px, 98vw);
+  height: min(700px, 96vh);
+  border: 1px solid var(--border);
+  box-shadow: 0 0 60px rgba(0,0,0,.9), inset 0 0 40px rgba(0,0,0,.5);
+  border-radius: 4px;
+  overflow: hidden;
+  opacity: 0;
+  filter: blur(8px);
+  transition: opacity 1.4s ease .4s, filter 1.4s ease .4s;
+}
+#game-shell.active { opacity:1; filter:none; }
+
+/* ══════════════════════════════════════════
+   INVENTORY SIDEBAR
+══════════════════════════════════════════ */
+#sidebar {
+  width: 130px;
+  flex-shrink: 0;
+  background: var(--panel);
+  border-right: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+}
+.sidebar-title {
+  font-family:'Creepster',cursive;
+  font-size:13px;
+  letter-spacing:3px;
+  color: var(--dim);
+  text-align:center;
+  padding: 12px 8px 10px;
+  border-bottom: 1px solid var(--border);
+}
+#inventory-grid {
+  flex:1;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+  padding: 8px;
+  align-content: start;
+  overflow-y: auto;
+}
+.inv-slot {
+  width: 54px;
+  height: 54px;
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  background: rgba(255,255,255,.03);
+  cursor: pointer;
+  position: relative;
+  transition: border-color .2s, box-shadow .2s;
+  background-size: cover;
+  background-position: center;
+}
+.inv-slot:hover { border-color: var(--gold); }
+.inv-slot.selected {
+  border-color: var(--gold);
+  box-shadow: 0 0 12px rgba(201,168,76,.5), inset 0 0 8px rgba(201,168,76,.12);
+  animation: slotPulse 1.4s ease-in-out infinite;
+}
+.inv-slot.pop { animation: itemPop .6s ease-out; }
+
+/* selected label */
+#selected-label {
+  text-align:center;
+  padding: 8px 6px;
+  border-top: 1px solid var(--border);
+  font-size: 10px;
+  letter-spacing: 2px;
+  color: var(--gold);
+  min-height: 36px;
+}
+
+/* ══════════════════════════════════════════
+   MAIN VIEWPORT
+══════════════════════════════════════════ */
+#viewport {
+  flex:1;
+  position: relative;
+  overflow: hidden;
+  background: #000;
+}
+
+/* Room image */
+#room-img {
+  position:absolute; inset:0;
+  width:100%; height:100%;
+  object-fit: cover;
+  transition: opacity .6s ease;
+  z-index: 0;
+}
+#room-img.fade { opacity:0; }
+
+/* Dark overlay for dim rooms */
+#room-darkness {
+  position:absolute; inset:0;
+  background: rgba(0,0,0,.82);
+  z-index:1;
+  pointer-events:none;
+  transition: opacity 1.2s ease;
+}
+
+/* Item hotspots rendered inside viewport */
+.hotspot {
+  position:absolute;
+  z-index:4;
+  cursor:pointer;
+  border: 2px solid transparent;
+  border-radius: 4px;
+  transition: border-color .2s, box-shadow .2s, transform .2s;
+  background-size: contain;
+  background-repeat: no-repeat;
+  background-position: center;
+}
+.hotspot:hover {
+  border-color: rgba(201,168,76,.6);
+  box-shadow: 0 0 16px rgba(201,168,76,.3);
+  transform: scale(1.05);
+}
+.hotspot-label {
+  position:absolute;
+  bottom: -22px;
+  left:50%;
+  transform: translateX(-50%);
+  font-size: 9px;
+  letter-spacing: 2px;
+  color: var(--gold);
+  white-space: nowrap;
+  pointer-events:none;
+  opacity:0;
+  transition: opacity .2s;
+}
+.hotspot:hover .hotspot-label { opacity:1; }
+
+/* ══════════════════════════════════════════
+   ARROW NAVIGATION
+══════════════════════════════════════════ */
+.nav-arrow {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 10;
+  width: 52px;
+  height: 52px;
+  background: rgba(8,6,14,.75);
+  border: 1px solid var(--border);
+  border-radius: 50%;
+  display: flex; justify-content:center; align-items:center;
+  cursor: pointer;
+  font-size: 22px;
+  color: var(--gold);
+  transition: background .2s, box-shadow .2s, transform .2s;
+  user-select:none;
+}
+.nav-arrow:hover {
+  background: rgba(201,168,76,.15);
+  box-shadow: 0 0 20px rgba(201,168,76,.3);
+  transform: translateY(-50%) scale(1.1);
+}
+.nav-arrow.disabled {
+  opacity:.2;
+  cursor:default;
+  pointer-events:none;
+}
+#arrow-left  { left: 16px; }
+#arrow-right { right: 16px; }
+
+/* Door prompt */
+.door-prompt {
+  position:absolute;
+  z-index:5;
+  cursor:pointer;
+  background: rgba(201,168,76,.08);
+  border: 1px dashed rgba(201,168,76,.25);
+  border-radius:3px;
+  display:flex; justify-content:center; align-items:flex-end;
+  padding-bottom:8px;
+  font-size: 10px;
+  letter-spacing:3px;
+  color: rgba(201,168,76,.5);
+  transition: background .2s, border-color .2s, color .2s;
+}
+.door-prompt:hover {
+  background: rgba(201,168,76,.15);
+  border-color: rgba(201,168,76,.5);
+  color: var(--gold);
+}
+
+/* ══════════════════════════════════════════
+   HUD — TOP BAR
+══════════════════════════════════════════ */
+#hud {
+  position:absolute; top:0; left:0; right:0;
+  z-index:6;
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  padding: 10px 16px;
+  background: linear-gradient(to bottom, rgba(0,0,0,.75), transparent);
+  pointer-events:none;
+}
+#room-title {
+  font-family:'Creepster',cursive;
+  font-size: clamp(16px,2vw,22px);
+  letter-spacing:5px;
+  color: var(--gold);
+  text-shadow: 0 0 12px rgba(201,168,76,.4);
+}
+#hint-text {
+  font-size: 10px;
+  letter-spacing:2px;
+  color: rgba(212,196,160,.5);
+  text-align:right;
+  max-width: 250px;
+}
+
+/* ══════════════════════════════════════════
+   MESSAGE TOAST
+══════════════════════════════════════════ */
+#toast {
+  position:fixed;
+  bottom: 24px; left:50%;
+  transform: translateX(-50%) translateY(60px);
+  background: var(--panel);
+  border: 1px solid var(--border);
+  padding: 10px 28px;
+  border-radius: 3px;
+  font-size: 13px;
+  letter-spacing: 2px;
+  z-index: 9000;
+  opacity:0;
+  transition: transform .35s ease, opacity .35s ease;
+  pointer-events:none;
+  white-space: nowrap;
+  max-width: 90vw;
+  text-align:center;
+}
+#toast.show { transform: translateX(-50%) translateY(0); opacity:1; }
+#toast.ok   { color: #7ec87e; border-color: rgba(126,200,126,.4); }
+#toast.bad  { color: #c87e7e; border-color: rgba(200,126,126,.4); }
+#toast.info { color: var(--gold); border-color: var(--border); }
+
+/* ══════════════════════════════════════════
+   RIGHT PANEL — Journal / Use-item
+══════════════════════════════════════════ */
+#right-panel {
+  width: 180px;
+  flex-shrink:0;
+  background: var(--panel);
+  border-left: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  font-size: 11px;
+}
+.rp-section {
+  padding: 12px 12px 10px;
+  border-bottom: 1px solid var(--border);
+}
+.rp-title {
+  font-family:'Creepster',cursive;
+  font-size: 13px;
+  letter-spacing:3px;
+  color: var(--dim);
+  margin-bottom:8px;
+}
+#journal-text {
+  color: rgba(212,196,160,.65);
+  line-height:1.6;
+  letter-spacing:1px;
+  font-size:10px;
+}
+#use-btn {
+  margin: 12px;
+  padding: 10px;
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--dim);
+  font-family:'Special Elite',serif;
+  font-size:11px;
+  letter-spacing:2px;
+  cursor:pointer;
+  border-radius:3px;
+  transition:all .2s;
+  display:none;
+}
+#use-btn.visible {
+  display:block;
+  color: var(--gold);
+  border-color: rgba(201,168,76,.5);
+}
+#use-btn:hover {
+  background: rgba(201,168,76,.1);
+  box-shadow: 0 0 12px rgba(201,168,76,.2);
+}
+
+/* ══════════════════════════════════════════
+   WIN SCREEN
+══════════════════════════════════════════ */
+#win-screen {
+  position:fixed; inset:0;
+  background: radial-gradient(ellipse at center, #0d1a0d 0%, #000 70%);
+  z-index:9998;
+  display:none;
+  flex-direction:column;
+  justify-content:center;
+  align-items:center;
+  animation: winReveal 2s ease;
+}
+#win-screen.show { display:flex; }
+.win-title {
+  font-family:'Creepster',cursive;
+  font-size: clamp(48px,8vw,96px);
+  color: #4caf50;
+  text-shadow: 0 0 30px #4caf50, 0 0 80px #2e7d32;
+  letter-spacing:8px;
+  animation: pulsate 2s ease-in-out infinite;
+}
+.win-sub {
+  color: var(--dim); letter-spacing:5px; font-size:16px;
+  margin: 16px 0 48px;
+}
+#btn-replay {
+  padding: 14px 52px;
+  border: 2px solid #4caf50;
+  background: transparent;
+  color: #4caf50;
+  font-family:'Creepster',cursive;
+  font-size:26px;
+  letter-spacing:6px;
+  cursor:pointer;
+  border-radius:3px;
+  transition:all .3s;
+}
+#btn-replay:hover {
+  background:#4caf50;
+  color:#000;
+}
+
+/* ══════════════════════════════════════════
+   ANIMATIONS
+══════════════════════════════════════════ */
+@keyframes pulsate {
+  0%,100% { opacity:1; }
+  50%      { opacity:.75; }
+}
+@keyframes flicker {
+  0%,19%,21%,23%,25%,54%,56%,100% { opacity:1; }
+  20%,22%,24%,55% { opacity:.4; }
+}
+@keyframes slotPulse {
+  0%,100% { box-shadow: 0 0 10px rgba(201,168,76,.4), inset 0 0 6px rgba(201,168,76,.1); }
+  50%     { box-shadow: 0 0 22px rgba(201,168,76,.7), inset 0 0 14px rgba(201,168,76,.2); }
+}
+@keyframes itemPop {
+  0%   { transform:scale(0) rotate(-20deg); opacity:0; }
+  70%  { transform:scale(1.2) rotate(5deg); opacity:1; }
+  100% { transform:scale(1) rotate(0); opacity:1; }
+}
+@keyframes winReveal {
+  from { opacity:0; } to { opacity:1; }
+}
+@keyframes shimmer {
+  0%,100% { filter:brightness(1); }
+  50%     { filter:brightness(1.3) drop-shadow(0 0 8px var(--gold)); }
+}
+
+/* Responsive */
+@media (max-width: 800px) {
+  #sidebar { width:90px; }
+  .inv-slot { width:36px; height:36px; }
+  #right-panel { width:120px; }
+  #journal-text { font-size:9px; }
+}
+@media (max-width: 560px) {
+  #game-shell { flex-direction:column; height:99vh; }
+  #sidebar { width:100%; height:70px; flex-direction:row; }
+  #inventory-grid { grid-template-columns:repeat(8,1fr); padding:4px; }
+  #right-panel { width:100%; height:80px; flex-direction:row; }
+}
+
+</style>
 </head>
 <body>
 
-    <!--This will display the main game content-->
-    
-     <audio id="Backgroundplay" src = 'Audio/Backgroundplay.mp3'></audio>
-     <audio id="clicks" src = 'Audio/clicks.mp3'></audio>
-     <audio id="pickaxe" src = 'Audio/pickingAXE.mp3''></audio>
-     <audio id="windy" src = 'Audio/wind.mp3'></audio>
-     <audio id="mapopen" src = 'Audio/mapsound.mp3'></audio>
-         <!--All the state will be change from here-->
-         <div id = "inventory">
-          <div class="items" id="item1"></div>
-          <div class="items" id="item2"></div>
-          <div class="items" id="item3"></div>
-          <div class="items" id="item4"></div>
-          <div class="items" id="item5"></div>
-          <div class="items" id="item6"></div>
-          <div class="items" id="item7"></div>
-          <div class="items" id="item8"></div>
-          <div class="items" id="item9"></div>
-          <div class="items" id="item10"></div>
-          <div class="items" id="item11"></div>
-          <div class="items" id="item12"></div>
-          <div class="items" id="item13"></div>
-          <div class="items" id="item14"></div>
-          <div class="items" id="item15"></div>
-          <div class="items" id="item16"></div>
-          <div class="items" id="item17"></div>
-          <div class="items" id="item18"></div>
-          <div class="items" id="item19"></div>
-          <div class="items" id="item20"></div>
-          <div class="items" id="item21"></div>
-          <div class="items" id="item22"></div>
-          <div class="items" id="item23"></div>
-          <div class="items" id="item24"></div>
-         
-         </div>
-         <audio id="lockeddoor" src = 'Audio/lockedoor.mp3'></audio>
-         <div id = "display">
-            
+<!-- ╔═══════════════════════════════╗ -->
+<!-- ║         PLAY GATE            ║ -->
+<!-- ╚═══════════════════════════════╝ -->
+<div id="play-gate">
+  <p class="gate-manor">BLACKWOOD MANOR</p>
+  <h1 class="gate-title">ESCAPE<br>THE HORROR</h1>
+  <p class="gate-sub">CAN YOU FIND THE WAY OUT?</p>
+  <button id="btn-play" onclick="G.startGame()">▶ &nbsp;PLAY</button>
+  <p class="gate-deco">NAVIGATE WITH ARROWS · PICK UP ITEMS · SOLVE THE MYSTERY</p>
+</div>
 
-         </div>
-         <div id = "controlpanel">
-          <div class="control" id = 'mapviewer'></div>
-          <div class="control" id = 'play' onclick = 'play1()'>PLAY</div>
-          <div class="control"></div>
-          <div class="control"></div>
-         
-         </div>
+<!-- ╔═══════════════════════════════╗ -->
+<!-- ║         WIN SCREEN           ║ -->
+<!-- ╚═══════════════════════════════╝ -->
+<div id="win-screen">
+  <h1 class="win-title">FREEDOM!</h1>
+  <p class="win-sub">YOU ESCAPED THE MANOR</p>
+  <button id="btn-replay" onclick="location.reload()">↻ PLAY AGAIN</button>
+</div>
 
-  
-    
+<!-- ╔═══════════════════════════════╗ -->
+<!-- ║         GAME SHELL           ║ -->
+<!-- ╚═══════════════════════════════╝ -->
+<div id="game-shell">
 
-    
+  <!-- INVENTORY SIDEBAR -->
+  <div id="sidebar">
+    <div class="sidebar-title">INVENTORY</div>
+    <div id="inventory-grid">
+      <!-- slots generated by JS -->
+    </div>
+    <div id="selected-label">— nothing selected —</div>
+  </div>
+
+  <!-- MAIN VIEWPORT -->
+  <div id="viewport">
+    <img id="room-img" src="" alt="">
+    <div id="room-darkness"></div>
+
+    <!-- HUD -->
+    <div id="hud">
+      <span id="room-title">ENTRANCE HALL</span>
+      <span id="hint-text"></span>
+    </div>
+
+    <!-- Navigation arrows -->
+    <div class="nav-arrow disabled" id="arrow-left"  onclick="G.navigate(-1)">&#8592;</div>
+    <div class="nav-arrow disabled" id="arrow-right" onclick="G.navigate(+1)">&#8594;</div>
+
+    <!-- Item hotspots injected here by JS -->
+  </div>
+
+  <!-- RIGHT PANEL -->
+  <div id="right-panel">
+    <div class="rp-section">
+      <div class="rp-title">JOURNAL</div>
+      <div id="journal-text">The manor is silent. Find a way to escape.</div>
+    </div>
+    <button id="use-btn" onclick="G.useSelected()">⚙ USE ITEM</button>
+    <div class="rp-section" style="margin-top:auto;">
+      <div class="rp-title">LOCATION</div>
+      <div id="location-text" style="font-size:10px;letter-spacing:1px;color:var(--dim);line-height:1.5;"></div>
+    </div>
+  </div>
+
+</div>
+
+<!-- TOAST -->
+<div id="toast"></div>
+
+<!-- ══════════════════════════════════
+     AUDIO
+════════════════════════════════════ -->
+<audio id="aud-bg"    loop src="Audio/Backgroundplay.mp3"></audio>
+<audio id="aud-wind"  loop src="Audio/wind.mp3"></audio>
+<audio id="aud-click"      src="Audio/clicks.mp3"></audio>
+<audio id="aud-pick"       src="Audio/pickingAXE.mp3"></audio>
+<audio id="aud-lock"       src="Audio/lockedoor.mp3"></audio>
+<audio id="aud-map"        src="Audio/mapsound.mp3"></audio>
+
+<script>
+/* ══════════════════════════════════════════════════════════
+   BLACKWOOD MANOR — Complete Game Engine
+   Arrow navigation · 5 rooms · 6 items · 4 puzzles · WIN
+══════════════════════════════════════════════════════════ */
+
+const G = (() => {
+
+/* ── CONSTANTS ────────────────────────────────────────── */
+const IMG = 'BackgroundImages/';
+
+/* ── STATE ────────────────────────────────────────────── */
+let state = {
+  started:       false,
+  currentRoom:   0,        // index into ROOMS[]
+  inventory:     [],       // array of item ids
+  selectedItem:  null,     // id string or null
+  slots:         [],       // DOM elements for inv slots
+
+  // puzzle flags
+  candleLit:     false,    // matches used on candle
+  kitchenOpen:   false,    // iron key used on kitchen door
+  fuseFixed:     false,    // fuse inserted in cellar box
+  chestOpen:     false,    // crowbar used on chest
+};
+
+/* ── ITEMS ────────────────────────────────────────────── */
+const ITEMS = {
+  candle:    { id:'candle',    img: IMG+'candle.png',    label:'Candle',       desc:'A wax candle. Needs a flame.' },
+  matches:   { id:'matches',   img: IMG+'ironKey.png',   label:'Matches',      desc:'A box of old matches. Can light a candle.' },
+  note:      { id:'note',      img: IMG+'note.png',      label:'Old Note',     desc:'"The kitchen key is behind the portrait."' },
+  ironKey:   { id:'ironKey',   img: IMG+'ironKey.png',   label:'Iron Key',     desc:'A heavy iron key. Opens the kitchen.' },
+  crowbar:   { id:'crowbar',   img: IMG+'crowbar.png',   label:'Crowbar',      desc:'A rusty crowbar. Good for prying things open.' },
+  fuse:      { id:'fuse',      img: IMG+'fuse.png',      label:'Fuse',         desc:'An old electrical fuse. Needs a fuse box.' },
+  escapeKey: { id:'escapeKey', img: IMG+'escapeKey.png', label:'Escape Key',   desc:'A glowing golden key. The way out.' },
+};
+
+// Use actual images for matches (reuse candle image scaled differently is fine)
+ITEMS.matches.img = IMG + 'candle.png'; // no matches image generated; use candle stand-in
+
+/* ── ROOMS ────────────────────────────────────────────── */
+// Each room: id, title, img, hint, dark (bool), items[], puzzles[]
+// left/right: room ids to navigate to (null = blocked)
+const ROOMS = [
+  {
+    id: 'entrance',
+    title: 'ENTRANCE HALL',
+    img: IMG + 'entrance.png',
+    dark: false,
+    left: null,
+    right: 'library',
+    location: 'Ground floor, east wing entrance.',
+    hint: 'Use the arrows to explore. Search every room.',
+    items: [
+      {
+        itemId: 'candle',
+        style: 'left:8%;bottom:15%;width:7%;height:14%;',
+        label: 'Candle'
+      },
+      {
+        itemId: 'note',
+        style: 'right:12%;bottom:20%;width:6%;height:10%;',
+        label: 'Old Note'
+      }
+    ],
+    puzzles: [],
+    doors: []
+  },
+  {
+    id: 'library',
+    title: 'DARK LIBRARY',
+    img: IMG + 'library.png',
+    dark: false,
+    left: 'entrance',
+    right: 'kitchen',
+    rightLocked: 'kitchenOpen',
+    rightLockedMsg: 'The kitchen door is locked. You need a key.',
+    location: 'Ground floor, library wing.',
+    hint: 'Search the desk and the hidden shelf.',
+    items: [
+      {
+        itemId: 'matches',
+        style: 'left:6%;bottom:32%;width:7%;height:12%;',
+        label: 'Matches'
+      },
+      {
+        itemId: 'ironKey',
+        style: 'right:8%;top:25%;width:6%;height:13%;',
+        label: 'Iron Key',
+        hiddenBehind: 'note' // only visible after reading note
+      }
+    ],
+    puzzles: [
+      { id:'lightCandle', trigger:'candle', target:'matches',
+        requires:['candle','matches'],
+        action: () => {
+          state.candleLit = true;
+          G.setJournal('The candle flickers to life, casting warm shadows...');
+          G.toast('🕯️ Candle lit! The darkness retreats...', 'ok');
+          // Upgrade candle in inventory display
+          updateSlotImage('candle', IMG+'candle.png');
+        },
+        doneMsg: 'The candle is already lit.'
+      }
+    ],
+    doors: []
+  },
+  {
+    id: 'kitchen',
+    title: 'FORSAKEN KITCHEN',
+    img: IMG + 'kitchen.png',
+    dark: false,
+    left: 'library',
+    right: 'cellar',
+    location: 'Ground floor, kitchen block.',
+    hint: 'There is a hidden cellar entrance somewhere...',
+    items: [
+      {
+        itemId: 'fuse',
+        style: 'right:14%;bottom:35%;width:7%;height:10%;',
+        label: 'Old Fuse'
+      },
+      {
+        itemId: 'crowbar',
+        style: 'left:10%;bottom:12%;width:12%;height:14%;',
+        label: 'Crowbar'
+      }
+    ],
+    puzzles: [],
+    doors: []
+  },
+  {
+    id: 'cellar',
+    title: 'WINE CELLAR',
+    img: IMG + 'cellar.png',
+    dark: false,
+    left: 'kitchen',
+    right: 'attic',
+    rightLocked: 'fuseFixed',
+    rightLockedMsg: 'The iron gate is held shut by an electronic lock. The fuse box is broken.',
+    location: 'Underground, west vault.',
+    hint: 'Fix the fuse box to open the gate. The chest holds a secret.',
+    items: [],
+    puzzles: [
+      {
+        id:'fixFuse', trigger:'fuse', target:'fusebox',
+        requires:['fuse'],
+        action: () => {
+          state.fuseFixed = true;
+          G.setJournal('Sparks fly as the fuse clicks in. A mechanical clunk echoes.');
+          G.toast('⚡ Power restored! The iron gate unlocks!', 'ok');
+          playSnd('aud-pick', 0, 1500);
+        },
+        doneMsg: 'The fuse is already installed.'
+      }
+    ],
+    // Hotspot for fuse box (not an item, a target)
+    targets: [
+      {
+        id: 'fusebox',
+        style: 'left:3%;top:30%;width:9%;height:20%;',
+        label: 'Fuse Box',
+        onClick: () => G.useOnTarget('fusebox')
+      }
+    ],
+    doors: []
+  },
+  {
+    id: 'attic',
+    title: 'THE ATTIC',
+    img: IMG + 'attic.png',
+    dark: false,
+    left: 'cellar',
+    right: null,
+    location: 'Top floor, north wing.',
+    hint: 'The chest is locked. You need something to force it open.',
+    items: [],
+    puzzles: [
+      {
+        id:'openChest', trigger:'crowbar', target:'chest',
+        requires:['crowbar'],
+        action: () => {
+          state.chestOpen = true;
+          G.setJournal('The chest splinters open! Inside glints the fabled Escape Key!');
+          G.toast('🔑 The Escape Key is yours!', 'ok');
+          playSnd('aud-pick', 0, 2000);
+          // Give escape key
+          setTimeout(() => G.giveItem('escapeKey'), 800);
+          // Remove chest target after solving
+          renderRoom();
+        },
+        doneMsg: 'The chest is already open.'
+      },
+      {
+        id:'escape', trigger:'escapeKey', target:'trapdoor',
+        requires:['escapeKey'],
+        action: () => {
+          G.toast('✨ The trapdoor opens... FREEDOM!', 'ok');
+          playSnd('aud-map', 0, 1500);
+          setTimeout(() => {
+            document.getElementById('win-screen').classList.add('show');
+          }, 1800);
+        },
+        doneMsg: ''
+      }
+    ],
+    targets: [
+      {
+        id: 'chest',
+        style: 'left:3%;bottom:20%;width:14%;height:22%;',
+        label: 'Locked Chest',
+        onClick: () => G.useOnTarget('chest')
+      },
+      {
+        id: 'trapdoor',
+        style: 'left:36%;bottom:5%;width:26%;height:18%;',
+        label: 'Trapdoor',
+        onClick: () => G.useOnTarget('trapdoor')
+      }
+    ],
+    doors: []
+  }
+];
+
+/* index by id */
+const ROOM_MAP = {};
+ROOMS.forEach((r,i) => ROOM_MAP[r.id] = i);
+
+/* ── DOM REFS ─────────────────────────────────────────── */
+const $ = id => document.getElementById(id);
+const roomImg      = $('room-img');
+const roomDarkness = $('room-darkness');
+const viewport     = $('viewport');
+const arrowL       = $('arrow-left');
+const arrowR       = $('arrow-right');
+const roomTitle    = $('room-title');
+const hintText     = $('hint-text');
+const journalEl    = $('journal-text');
+const locationEl   = $('location-text');
+const invGrid      = $('inventory-grid');
+const selLabel     = $('selected-label');
+const useBtn       = $('use-btn');
+const toastEl      = $('toast');
+
+let toastTimer = null;
+
+/* ── AUDIO HELPERS ────────────────────────────────────── */
+function playSnd(id, from=0, dur=2000) {
+  const a = $(id);
+  if (!a) return;
+  a.currentTime = from;
+  a.play().catch(()=>{});
+  if (dur > 0) setTimeout(() => { a.pause(); a.currentTime=from; }, dur);
+}
+
+/* ── TOAST ────────────────────────────────────────────── */
+function toast(msg, type='info') {
+  toastEl.textContent = msg;
+  toastEl.className = 'show ' + type;
+  if (toastTimer) clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => { toastEl.className=''; }, 2800);
+}
+
+/* ── JOURNAL ──────────────────────────────────────────── */
+function setJournal(text) {
+  journalEl.textContent = text;
+}
+
+/* ── GAME START ───────────────────────────────────────── */
+function startGame() {
+  state.started = true;
+  $('play-gate').classList.add('hidden');
+  $('game-shell').classList.add('active');
+
+  // Build inventory slots
+  for (let i=0; i<10; i++) {
+    const s = document.createElement('div');
+    s.className = 'inv-slot';
+    s.dataset.idx = i;
+    s.addEventListener('click', () => onSlotClick(i));
+    invGrid.appendChild(s);
+    state.slots.push(s);
+  }
+
+  // Start audio
+  const bg = $('aud-bg');
+  bg.volume = 0.3; bg.play().catch(()=>{});
+  const wd = $('aud-wind');
+  wd.volume = 0.2; wd.play().catch(()=>{});
+
+  renderRoom();
+}
+
+/* ── NAVIGATE ─────────────────────────────────────────── */
+function navigate(dir) {
+  const room = ROOMS[state.currentRoom];
+  const destId = dir === -1 ? room.left : room.right;
+  if (!destId) return;
+
+  // check lock
+  if (dir === 1 && room.rightLocked && !state[room.rightLocked]) {
+    playSnd('aud-lock', 0.5, 1500);
+    toast('🔒 ' + (room.rightLockedMsg || 'This path is locked.'), 'bad');
+    return;
+  }
+  if (dir === -1 && room.leftLocked && !state[room.leftLocked]) {
+    playSnd('aud-lock', 0.5, 1500);
+    toast('🔒 ' + (room.leftLockedMsg || 'This path is locked.'), 'bad');
+    return;
+  }
+
+  playSnd('aud-click', 0, 500);
+  state.currentRoom = ROOM_MAP[destId];
+  renderRoom();
+}
+
+/* ── RENDER ROOM ──────────────────────────────────────── */
+function renderRoom() {
+  const room = ROOMS[state.currentRoom];
+
+  // Image crossfade
+  roomImg.classList.add('fade');
+  setTimeout(() => {
+    roomImg.src = room.img;
+    roomImg.classList.remove('fade');
+  }, 300);
+
+  // Darkness
+  roomDarkness.style.opacity = (room.dark && !state.candleLit) ? '1' : '0';
+
+  // HUD
+  roomTitle.textContent = room.title;
+  hintText.textContent  = room.hint || '';
+  locationEl.textContent = room.location || '';
+
+  // Arrows
+  const hasLeft  = !!room.left;
+  const hasRight = !!room.right;
+  arrowL.classList.toggle('disabled', !hasLeft);
+  arrowR.classList.toggle('disabled', !hasRight);
+
+  // Clear old hotspots
+  viewport.querySelectorAll('.hotspot, .door-prompt').forEach(el => el.remove());
+
+  // Render item hotspots
+  room.items.forEach(spec => {
+    const item = ITEMS[spec.itemId];
+    if (!item) return;
+    if (state.inventory.includes(spec.itemId)) return; // already picked
+
+    // hidden behind another item?
+    if (spec.hiddenBehind && !state.inventory.includes(spec.hiddenBehind)) return;
+
+    const el = document.createElement('div');
+    el.className = 'hotspot';
+    el.style.cssText = spec.style;
+    el.style.backgroundImage = `url('${item.img}')`;
+    el.dataset.itemId = spec.itemId;
+    el.innerHTML = `<span class="hotspot-label">${spec.label}</span>`;
+    el.addEventListener('click', () => pickupItem(spec.itemId, el));
+    viewport.appendChild(el);
+  });
+
+  // Render puzzle targets (non-item clickables like fuse box, chest)
+  if (room.targets) {
+    room.targets.forEach(t => {
+      if (t.id === 'chest' && state.chestOpen) return;
+
+      const el = document.createElement('div');
+      el.className = 'hotspot';
+      el.style.cssText = t.style;
+      el.dataset.targetId = t.id;
+      el.innerHTML = `<span class="hotspot-label">${t.label}</span>`;
+      el.addEventListener('click', t.onClick);
+      viewport.appendChild(el);
+    });
+  }
+
+  updateUseBtn();
+}
+
+/* ── ITEM PICKUP ──────────────────────────────────────── */
+function pickupItem(itemId, el) {
+  const item = ITEMS[itemId];
+  if (!item || state.inventory.includes(itemId)) return;
+
+  state.inventory.push(itemId);
+
+  // Fill next empty slot
+  const slot = state.slots[state.inventory.length - 1];
+  if (slot) {
+    slot.style.backgroundImage = `url('${item.img}')`;
+    slot.dataset.itemId = itemId;
+    slot.classList.add('pop');
+    setTimeout(() => slot.classList.remove('pop'), 700);
+  }
+
+  el.remove();
+  playSnd('aud-pick', 2, 1800);
+  toast(`Picked up: ${item.label}`, 'ok');
+
+  // special journals
+  if (itemId === 'note') {
+    setJournal('"The kitchen key is behind the portrait." The ink is faded but legible.');
+    toast('📜 Note found! Read the journal →', 'info');
+    // Trigger reveal of iron key now
+    renderRoom();
+  } else if (itemId === 'candle') {
+    setJournal('A wax candle... if only you had something to light it with.');
+  } else if (itemId === 'matches') {
+    setJournal('A box of old matches. Still has a few left.');
+  } else if (itemId === 'ironKey') {
+    setJournal('A heavy iron key. Could open the kitchen door.');
+    state.kitchenOpen = true; // pickup = already "used"
+    toast('🗝️ Iron Key! The kitchen door unlocks!', 'ok');
+  } else if (itemId === 'fuse') {
+    setJournal('An old fuse. The cellar\'s iron gate must have a fuse box nearby.');
+  } else if (itemId === 'crowbar') {
+    setJournal('A sturdy crowbar. Perfect for forcing open a locked chest.');
+  }
+
+  updateUseBtn();
+}
+
+/* give item programmatically (no hotspot) */
+function giveItem(itemId) {
+  const item = ITEMS[itemId];
+  if (!item || state.inventory.includes(itemId)) return;
+  state.inventory.push(itemId);
+  const slot = state.slots[state.inventory.length - 1];
+  if (slot) {
+    slot.style.backgroundImage = `url('${item.img}')`;
+    slot.dataset.itemId = itemId;
+    slot.classList.add('pop');
+    setTimeout(() => slot.classList.remove('pop'), 700);
+  }
+  updateUseBtn();
+}
+
+/* ── INVENTORY CLICK ──────────────────────────────────── */
+function onSlotClick(idx) {
+  const slot = state.slots[idx];
+  const itemId = slot.dataset.itemId;
+  if (!itemId) return;
+
+  playSnd('aud-click', 0, 400);
+
+  if (state.selectedItem === itemId) {
+    // deselect
+    state.selectedItem = null;
+    state.slots.forEach(s => s.classList.remove('selected'));
+    selLabel.textContent = '— nothing selected —';
+    updateUseBtn();
+    return;
+  }
+
+  // select
+  state.selectedItem = itemId;
+  state.slots.forEach(s => s.classList.remove('selected'));
+  slot.classList.add('selected');
+  const item = ITEMS[itemId];
+  selLabel.textContent = item ? item.label.toUpperCase() : '';
+  if (item) setJournal(item.desc);
+  updateUseBtn();
+}
+
+/* ── UPDATE SLOT IMAGE ────────────────────────────────── */
+function updateSlotImage(itemId, newImg) {
+  state.slots.forEach(s => {
+    if (s.dataset.itemId === itemId) s.style.backgroundImage = `url('${newImg}')`;
+  });
+}
+
+/* ── USE BUTTON ───────────────────────────────────────── */
+function updateUseBtn() {
+  const room = ROOMS[state.currentRoom];
+  const sel  = state.selectedItem;
+  if (sel && room.puzzles && room.puzzles.some(p => p.trigger === sel)) {
+    useBtn.classList.add('visible');
+    useBtn.textContent = `⚙ USE ${(ITEMS[sel]||{label:''}).label.toUpperCase()}`;
+  } else {
+    useBtn.classList.remove('visible');
+  }
+}
+
+/* ── USE SELECTED (button click) ─────────────────────── */
+function useSelected() {
+  const room = ROOMS[state.currentRoom];
+  const sel  = state.selectedItem;
+  if (!sel) { toast('Select an item first.', 'bad'); return; }
+
+  // find matching puzzle in this room
+  const puzzle = room.puzzles && room.puzzles.find(p => p.trigger === sel);
+  if (!puzzle) {
+    toast(`Can't use that here.`, 'bad');
+    playSnd('aud-lock', 0.5, 1200);
+    return;
+  }
+  triggerPuzzle(puzzle);
+}
+
+/* ── USE ON TARGET (hotspot click) ───────────────────── */
+function useOnTarget(targetId) {
+  const room   = ROOMS[state.currentRoom];
+  const sel    = state.selectedItem;
+  const puzzle = room.puzzles && room.puzzles.find(p => p.target === targetId);
+
+  if (!puzzle) { toast('Nothing to do here.', 'bad'); return; }
+  if (!sel)    { toast('Select an item from inventory first.', 'bad'); playSnd('aud-lock',0.5,1000); return; }
+  if (puzzle.trigger !== sel) {
+    toast(`That item doesn't work here.`, 'bad');
+    playSnd('aud-lock', 0.5, 1200);
+    return;
+  }
+  triggerPuzzle(puzzle);
+}
+
+/* ── TRIGGER PUZZLE ───────────────────────────────────── */
+function triggerPuzzle(puzzle) {
+  // check if already solved
+  if (puzzle.id === 'lightCandle' && state.candleLit) { toast(puzzle.doneMsg, 'info'); return; }
+  if (puzzle.id === 'fixFuse'     && state.fuseFixed)  { toast(puzzle.doneMsg, 'info'); return; }
+  if (puzzle.id === 'openChest'   && state.chestOpen)  { toast(puzzle.doneMsg, 'info'); return; }
+
+  // check requirements
+  const missing = (puzzle.requires || []).filter(id => !state.inventory.includes(id));
+  if (missing.length) {
+    toast(`You need: ${missing.map(id => ITEMS[id]?.label || id).join(', ')}`, 'bad');
+    playSnd('aud-lock', 0.5, 1200);
+    return;
+  }
+
+  puzzle.action();
+  state.selectedItem = null;
+  state.slots.forEach(s => s.classList.remove('selected'));
+  selLabel.textContent = '— nothing selected —';
+  updateUseBtn();
+}
+
+/* ── PUBLIC API ───────────────────────────────────────── */
+return { startGame, navigate, useSelected, useOnTarget, giveItem, toast, setJournal };
+
+})(); // end IIFE
+</script>
 </body>
-<script src = 'logic.js'></script>
 </html>
